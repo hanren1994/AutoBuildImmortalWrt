@@ -51,13 +51,20 @@ case "$board_name" in
         echo "Using $board_name mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
         ;;
     *)
-        # 修改：第一个接口为LAN，第二个接口为WAN，其余为LAN
-        wan_ifname=$(echo "$ifnames" | awk '{print $2}')
-        lan_ifnames=$(echo "$ifnames" | awk '{print $1}') $(echo "$ifnames" | cut -d ' ' -f3-)
-        # 默认第一个接口为WAN，其余为LAN
-        # wan_ifname=$(echo "$ifnames" | awk '{print $1}')
-        # lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
-        echo "Using default mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
+        # 单网口强制 LAN（旁路由），多网口 1=LAN 2=WAN
+        if echo "$ifnames" | wc -w | grep -q 1; then
+            wan_ifname=""
+            lan_ifnames="$ifnames"
+            echo "Using single LAN (旁路由模式): LAN=$lan_ifnames" >>"$LOGFILE"
+        else
+            # 修改：第一个接口为LAN，第二个接口为WAN，其余为LAN
+            wan_ifname=$(echo "$ifnames" | awk '{print $2}')
+            lan_ifnames=$(echo "$ifnames" | awk '{print $1}') $(echo "$ifnames" | cut -d ' ' -f3-)
+            # 默认第一个接口为WAN，其余为LAN
+            # wan_ifname=$(echo "$ifnames" | awk '{print $1}')
+            # lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
+            echo "Using default mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
+        fi
         ;;
 esac
 
