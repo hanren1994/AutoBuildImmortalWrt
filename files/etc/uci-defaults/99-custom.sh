@@ -58,11 +58,11 @@ case "$board_name" in
             echo "Using single LAN (旁路由模式): LAN=$lan_ifnames" >>"$LOGFILE"
         else
             # 修改：第一个接口为LAN，第二个接口为WAN，其余为LAN
-            wan_ifname=$(echo "$ifnames" | awk '{print $2}')
-            lan_ifnames=$(echo "$ifnames" | awk '{print $1}') $(echo "$ifnames" | cut -d ' ' -f3-)
+            # wan_ifname=$(echo "$ifnames" | awk '{print $2}')
+            # lan_ifnames=$(echo "$ifnames" | awk '{print $1}') $(echo "$ifnames" | cut -d ' ' -f3-)
             # 默认第一个接口为WAN，其余为LAN
-            # wan_ifname=$(echo "$ifnames" | awk '{print $1}')
-            # lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
+            wan_ifname=$(echo "$ifnames" | awk '{print $1}')
+            lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
             echo "Using default mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
         fi
         ;;
