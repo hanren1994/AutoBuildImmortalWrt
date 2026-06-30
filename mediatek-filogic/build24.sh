@@ -23,6 +23,15 @@ arch aarch64_generic 10\n\
 arch aarch64_cortex-a53 15' repositories.conf
 
 
+# ========== RAX3000M 256M闪存DTS扩容补丁 20260630新增==========
+if [ "$PROFILE" = "cmcc_rax3000m" ]; then
+    DTS_FILE=/home/build/immortalwrt/target/linux/mediatek-filogic/dts/mt7981_cmcc_rax3000m.dts
+    echo "🔧 检测到RAX3000M，自动修改DTS为256MB SPI Flash分区"
+    # 闪存总容量 0x4000000(128M) → 0x8000000(256M)
+    sed -i 's/reg = <0 0x4000000>/reg = <0 0x8000000>/' $DTS_FILE
+    # firmware分区 0x3fb0000 → 0x7fb0000
+    sed -i 's/reg = <0x50000 0x3fb0000>/reg = <0x50000 0x7fb0000>/' $DTS_FILE
+fi
 
 # yml 传入的路由器型号 PROFILE
 echo "Building for profile: $PROFILE"
@@ -105,7 +114,13 @@ fi
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Building image with the following packages:"
 echo "$PACKAGES"
 
-make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files"
+# make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" 20260630修改
+# RAX3000M分配124M rootfs，其余机型保持默认
+if [ "$PROFILE" = "cmcc_rax3000m" ]; then
+    make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" ROOTFS_PARTSIZE=124
+else
+    make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files"
+fi
 
 if [ $? -ne 0 ]; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: Build failed!"
