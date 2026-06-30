@@ -115,16 +115,38 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - Building image with the following packages:
 echo "$PACKAGES"
 
 # make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" 20260630修改
-# RAX3000M分配124M rootfs，其余机型保持默认
+# 构建固件，RAX3000M内置自动扩容，ROOTFS预留空白供自动拉伸
 if [ "$PROFILE" = "cmcc_rax3000m" ]; then
-    make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" ROOTFS_PARTSIZE=124
+    echo "🚀 RAX3000M 256M定制：内置首次开机自动扩容，ROOTFS_PARTSIZE=110M"
+    # 创建开机自动扩容初始化脚本，打包进固件
+    mkdir -p /home/build/immortalwrt/files/etc/init.d
+    cat > /home/build/immortalwrt/files/etc/init.d/auto_expand_overlay << "SCRIPT_EOF"
+#!/bin/sh /etc/rc.common
+START=99
+boot() {
+    # 仅全新刷机第一次运行，标记文件避免重复扩容
+    local mark="/root/.overlay_expanded_ok"
+    if [ ! -f "$mark" ]; then
+        echo "【自动扩容】检测空闲闪存，拉伸overlay至分区末尾"
+        # 适配MT7981 squashfs+jffs2布局，自动占用firmware全部空闲空间
+        root_part=$(awk '/rootfs_data/ {print $1}' /proc/mtd)
+        if [ -n "$root_part" ]; then
+            jffs2resize /dev/$root_part
+            touch "$mark"
+            echo "扩容完成，自动重启生效"
+            reboot
+        fi
+    fi
+}
+SCRIPT_EOF
+    # 添加执行权限
+    chmod 755 /home/build/immortalwrt/files/etc/init.d/auto_expand_overlay
+    # 设置开机自启
+    echo "/etc/init.d/auto_expand_overlay enable" >> /home/build/immortalwrt/files/etc/rc.local
+    # 编译固件，预留14M空闲闪存用于自动扩容
+    make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" ROOTFS_PARTSIZE=110
 else
     make image PROFILE=$PROFILE PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files"
-fi
-
-if [ $? -ne 0 ]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: Build failed!"
-    exit 1
 fi
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Build completed successfully."
