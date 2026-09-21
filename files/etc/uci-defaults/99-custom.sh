@@ -52,8 +52,11 @@ case "$board_name" in
         ;;
     *)
         # 默认第一个接口为WAN，其余为LAN
-        wan_ifname=$(echo "$ifnames" | awk '{print $1}')
-        lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
+        # wan_ifname=$(echo "$ifnames" | awk '{print $1}')
+        # lan_ifnames=$(echo "$ifnames" | cut -d ' ' -f2-)
+         # 默认最后一个接口为WAN，其余为LAN
+        wan_ifname=$(echo "$ifnames" | awk '{print $NF}')
+        lan_ifnames=$(echo "$ifnames" | awk '{$NF="";print $0}' | awk '{$1=$1};1')
         echo "Using default mapping: WAN=$wan_ifname LAN=$lan_ifnames" >>"$LOGFILE"
         ;;
 esac
@@ -128,10 +131,14 @@ elif [ "$count" -gt 1 ]; then
 fi
 
 # 设置所有网口可访问网页终端
-uci delete ttyd.@ttyd[0].interface
+# uci delete ttyd.@ttyd[0].interface
+# ttyd 仅LAN访问
+uci set ttyd.@ttyd[0].interface='@lan'
 
 # 设置所有网口可连接 SSH
-uci set dropbear.@dropbear[0].Interface=''
+# uci set dropbear.@dropbear[0].Interface=''
+# dropbear SSH 仅LAN访问
+uci set dropbear.@dropbear[0].Interface='lan'
 uci commit
 
 # 设置编译作者信息
